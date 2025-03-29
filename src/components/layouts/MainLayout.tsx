@@ -32,14 +32,14 @@ export default function MainLayout({ children, showSidebar = true }: MainLayoutP
       <MainNav />
       
       {/* Main content area with optional sidebar */}
-      <div className="flex flex-1 pt-16"> {/* Add pt-16 to account for the fixed header height */}
+      <div className="flex flex-1 pt-16"> {/* Adjust for fixed header */}
         {showSidebar && user && isDashboardPage && (
           <Sidebar />
         )}
         
         <main 
-          className={`flex-1 transition-all duration-300 ${
-            showSidebar && user && isDashboardPage ? 'md:pl-64' : ''
+          className={`flex-1 transition-all duration-300 p-6 ${
+            showSidebar && user && isDashboardPage ? 'lg:pl-64' : ''
           }`}
         >
           {/* Only show children after mounting to prevent layout shift */}

@@ -32,68 +32,61 @@ export default function MainNav() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-      <div className="h-full px-4 flex items-center justify-between">
-        <div className="flex items-center h-full">
-          {/* Only show logo in navbar on landing pages, not dashboard */}
-          {!isDashboardPage && (
-            <Link to="/" className="flex items-center space-x-2">
-              <Logo size={36} />
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-violet-600">
-                SecureAudit
-              </span>
-            </Link>
-          )}
-          
-          <div className="hidden md:ml-8 md:flex md:space-x-8 h-full">
-            <Link 
-              to="/" 
-              className={`inline-flex items-center px-1 h-full border-b-2 ${
-                location.pathname === '/' 
-                  ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
-                  : 'border-transparent hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400'
-              } transition-colors text-sm font-medium`}
-            >
-              Home
-            </Link>
-            {user && (
-              <>
-                <Link 
-                  to="/dashboard" 
-                  className={`inline-flex items-center px-1 h-full border-b-2 ${
-                    location.pathname === '/dashboard' 
-                      ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
-                      : 'border-transparent hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400'
-                  } transition-colors text-sm font-medium`}
-                >
-                  Dashboard
-                </Link>
-                <Link 
-                  to="/audit/new" 
-                  className={`inline-flex items-center px-1 h-full border-b-2 ${
-                    location.pathname === '/audit/new' 
-                      ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
-                      : 'border-transparent hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400'
-                  } transition-colors text-sm font-medium`}
-                >
-                  New Audit
-                </Link>
-              </>
-            )}
-          </div>
+      <div className="h-full flex items-center justify-between px-4">
+        {/* Left Section with Logo */}
+        <div className="lg:w-64 flex items-center h-full">
+          <Link to="/" className="flex items-center space-x-2">
+            <Logo size={32} />
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-violet-600">
+              SecureAudit
+            </span>
+          </Link>
         </div>
         
+        {/* Center Navigation Links */}
+        <div className="hidden md:flex md:space-x-1 h-full">
+          <Link 
+            to="/" 
+            className={`inline-flex items-center px-4 h-full border-b-2 ${
+              location.pathname === '/' 
+                ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
+                : 'border-transparent hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400'
+            } transition-colors text-sm font-medium`}
+          >
+            Home
+          </Link>
+          <Link 
+            to="/dashboard" 
+            className={`inline-flex items-center px-4 h-full border-b-2 ${
+              location.pathname === '/dashboard' 
+                ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
+                : 'border-transparent hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400'
+            } transition-colors text-sm font-medium`}
+          >
+            Dashboard
+          </Link>
+          <Link 
+            to="/audit/new" 
+            className={`inline-flex items-center px-4 h-full border-b-2 ${
+              location.pathname === '/audit/new' 
+                ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
+                : 'border-transparent hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-400 dark:hover:text-blue-400'
+            } transition-colors text-sm font-medium`}
+          >
+            New Audit
+          </Link>
+        </div>
+        
+        {/* Right Section with User Menu */}
         <div className="flex items-center">
+          {/* User Menu (Authenticated) */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="group flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                <Button variant="ghost" className="rounded-full h-8 w-8 p-0 overflow-hidden">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
                     <User className="h-4 w-4" />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors hidden md:block">
-                    {user.full_name || 'Account'}
-                  </span>
-                  <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors hidden md:block" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -121,7 +114,7 @@ export default function MainNav() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="hidden md:flex space-x-3">
+            <div className="flex space-x-2">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate("/login")}
@@ -139,7 +132,7 @@ export default function MainNav() {
           )}
           
           {/* Mobile menu button */}
-          <div className="md:hidden ml-4">
+          <div className="md:hidden ml-2">
             <button
               type="button"
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800 focus:outline-none transition-colors"
@@ -186,67 +179,43 @@ export default function MainNav() {
               </>
             )}
           </div>
-          <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-800">
-            {user ? (
-              <>
-                <div className="flex items-center px-4 py-2">
-                  <div className="flex-shrink-0">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 flex items-center justify-center">
-                      <User className="h-5 w-5" />
-                    </div>
-                  </div>
-                  <div className="ml-3">
-                    <div className="text-base font-medium text-gray-800 dark:text-gray-200">{user.full_name || 'User'}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+          {user && (
+            <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center px-4 py-2">
+                <div className="flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 flex items-center justify-center">
+                    <User className="h-5 w-5" />
                   </div>
                 </div>
-                <div className="mt-3 space-y-1 px-2">
-                  <button
-                    onClick={() => {
-                      navigate("/settings");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex w-full items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <Settings className="mr-3 h-5 w-5" />
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleSignOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex w-full items-center px-3 py-2 rounded-md text-base font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    <LogOut className="mr-3 h-5 w-5" />
-                    Sign out
-                  </button>
+                <div className="ml-3">
+                  <div className="text-base font-medium text-gray-800 dark:text-gray-200">{user.full_name || 'User'}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
                 </div>
-              </>
-            ) : (
-              <div className="mt-3 space-y-1 px-4 flex flex-col">
-                <Button
-                  variant="outline"
-                  className="justify-center mb-2"
-                  onClick={() => {
-                    navigate("/login");
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Sign in
-                </Button>
-                <Button
-                  className="justify-center bg-gradient-to-r from-blue-500 to-violet-600 hover:from-blue-600 hover:to-violet-700 text-white"
-                  onClick={() => {
-                    navigate("/signup");
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Sign up
-                </Button>
               </div>
-            )}
-          </div>
+              <div className="mt-3 space-y-1 px-2">
+                <button
+                  onClick={() => {
+                    navigate("/settings");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex w-full items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-blue-400 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <Settings className="mr-3 h-5 w-5" />
+                  Settings
+                </button>
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex w-full items-center px-3 py-2 rounded-md text-base font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <LogOut className="mr-3 h-5 w-5" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </nav>
