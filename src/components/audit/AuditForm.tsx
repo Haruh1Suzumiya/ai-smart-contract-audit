@@ -1,23 +1,56 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAudit } from "@/contexts/AuditContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SAMPLE_SOLIDITY_CODE } from "@/lib/constants";
 import { toast } from "sonner";
-import { FileText, Github, Upload, Code } from "lucide-react";
+import { 
+  FileText, 
+  Github, 
+  Upload, 
+  Code, 
+  AlertTriangle, 
+  Loader2 
+} from "lucide-react";
+import { getApiKey } from "@/lib/supabase";
 
 export default function AuditForm() {
-  const { performAudit, loading } = useAudit();
+  const { performAudit, loading, fetchCodeFromGitHub } = useAudit();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  
   const [name, setName] = useState("");
   const [code, setCode] = useState(SAMPLE_SOLIDITY_CODE);
   const [githubRepo, setGithubRepo] = useState("");
   const [activeTab, setActiveTab] = useState<string>("code");
+  const [fetchingGithub, setFetchingGithub] = useState(false);
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  
+  // APIキーのチェック
+  useEffect(() => {
+    const checkApiKey = async () => {
+      if (!user) return false;
+      
+      try {
+        const apiKey = await getApiKey(user.id, 'gemini');
+        const missing = !apiKey;
+        setApiKeyMissing(missing);
+        return !missing;
+      } catch (error) {
+        console.error("Error checking API key:", error);
+        setApiKeyMissing(true);
+        return false;
+      }
+    };
+    
+    checkApiKey();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,9 +70,24 @@ export default function AuditForm() {
       return;
     }
     
+    // APIキーの確認
+    if (apiKeyMissing) {
+      toast.error("Gemini API key is missing. Please add it in the settings.");
+      navigate("/settings");
+      return;
+    }
+    
     try {
-      // For demo purposes, we'll use the code from the textarea regardless of tab
-      const auditResult = await performAudit(name, code);
+      const sourceCode = code;
+      let sourceType: 'manual' | 'file' | 'github' = 'manual';
+      
+      if (activeTab === "github") {
+        sourceType = 'github';
+      } else if (activeTab === "file") {
+        sourceType = 'file';
+      }
+      
+      const auditResult = await performAudit(name, sourceCode, sourceType);
       navigate(`/audit/result/${auditResult.id}`);
     } catch (error) {
       console.error("Audit submission error:", error);
@@ -63,16 +111,29 @@ export default function AuditForm() {
     reader.readAsText(file);
   };
 
-  const handleGithubImport = () => {
+  const handleGithubImport = async () => {
     if (!githubRepo) {
       toast.error("Please enter a GitHub repository URL");
       return;
     }
     
-    // This is just a demo - in a real app, we would fetch from GitHub API
-    toast.success("GitHub repository imported successfully");
-    setCode(`// Imported from GitHub: ${githubRepo}\n${SAMPLE_SOLIDITY_CODE}`);
-    setActiveTab("code");
+    if (!githubRepo.includes("github.com")) {
+      toast.error("Please enter a valid GitHub repository URL");
+      return;
+    }
+    
+    try {
+      setFetchingGithub(true);
+      const sourceCode = await fetchCodeFromGitHub(githubRepo);
+      setCode(sourceCode);
+      setActiveTab("code");
+      toast.success("GitHub repository code imported successfully");
+    } catch (error) {
+      console.error("GitHub import error:", error);
+      toast.error("Failed to import code from GitHub");
+    } finally {
+      setFetchingGithub(false);
+    }
   };
 
   return (
@@ -81,6 +142,22 @@ export default function AuditForm() {
         <h2 className="text-2xl font-bold">New Smart Contract Audit</h2>
         <p className="text-muted-foreground">Submit your Solidity code for analysis</p>
       </div>
+      
+      {apiKeyMissing && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Gemini API key is missing. Please add it in the{" "}
+            <a 
+              href="/settings"
+              className="font-medium underline underline-offset-4"
+            >
+              Settings
+            </a>{" "}
+            to perform audits.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
@@ -112,9 +189,9 @@ export default function AuditForm() {
           
           <TabsContent value="code" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Solidity Code</Label>
+              <Label htmlFor="solidity-code">Solidity Code</Label>
               <Textarea
-                id="code"
+                id="solidity-code"
                 placeholder="Paste your Solidity code here..."
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
@@ -173,12 +250,20 @@ export default function AuditForm() {
                   type="button"
                   variant="outline"
                   onClick={handleGithubImport}
+                  disabled={fetchingGithub}
                 >
-                  Import
+                  {fetchingGithub ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <span>Importing...</span>
+                    </>
+                  ) : (
+                    "Import"
+                  )}
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Enter the URL of the repository containing your Solidity code
+                Enter the URL of the public repository containing your Solidity code
               </p>
             </div>
             
@@ -196,8 +281,8 @@ export default function AuditForm() {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? (
             <>
-              <span className="animate-spin mr-2">◌</span>
-              Analyzing Contract...
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <span>Analyzing Contract...</span>
             </>
           ) : (
             "Start Audit"

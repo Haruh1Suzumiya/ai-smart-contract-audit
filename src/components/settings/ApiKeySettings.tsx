@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { useApiKey } from "@/contexts/ApiKeyContext";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,53 +10,83 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Copy, Eye, EyeOff, Save } from "lucide-react";
+import { getApiKey, saveApiKey } from "@/lib/supabase";
 
 export default function ApiKeySettings() {
-  const { getGeminiApiKey, setGeminiApiKey, getElevenLabsApiKey, setElevenLabsApiKey, loading } = useApiKey();
+  const { user } = useAuth();
   
-  const [geminiKey, setGeminiKey] = useState(getGeminiApiKey() || "");
-  const [elevenLabsKey, setElevenLabsKey] = useState(getElevenLabsApiKey() || "");
-  
+  const [geminiKey, setGeminiKey] = useState("");
   const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [showElevenLabsKey, setShowElevenLabsKey] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [keyTypeToReset, setKeyTypeToReset] = useState<"gemini" | "elevenlabs" | null>(null);
+  const [keyTypeToReset, setKeyTypeToReset] = useState<"gemini" | null>(null);
+
+  // APIキーの取得
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        const geminiApiKey = await getApiKey(user.id, 'gemini');
+        if (geminiApiKey) {
+          setGeminiKey(geminiApiKey);
+        }
+      } catch (error) {
+        console.error("Error fetching API keys:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchApiKeys();
+  }, [user]);
 
   const handleSaveGeminiKey = async () => {
+    if (!user) return;
+    
     try {
-      await setGeminiApiKey(geminiKey);
+      setLoading(true);
+      
+      await saveApiKey(user.id, 'gemini', geminiKey);
+      
+      toast.success("Gemini API key saved successfully");
     } catch (error) {
       console.error("Save Gemini API key error:", error);
+      toast.error("Failed to save Gemini API key");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSaveElevenLabsKey = async () => {
-    try {
-      await setElevenLabsApiKey(elevenLabsKey);
-    } catch (error) {
-      console.error("Save ElevenLabs API key error:", error);
-    }
-  };
-
-  const resetKey = (type: "gemini" | "elevenlabs") => {
+  const resetKey = (type: "gemini") => {
     setKeyTypeToReset(type);
     setResetConfirmOpen(true);
   };
 
   const confirmReset = async () => {
+    if (!user) return;
+    
     try {
+      setLoading(true);
+      
       if (keyTypeToReset === "gemini") {
-        await setGeminiApiKey("");
+        await saveApiKey(user.id, 'gemini', "");
         setGeminiKey("");
         toast.success("Gemini API key removed");
-      } else if (keyTypeToReset === "elevenlabs") {
-        await setElevenLabsApiKey("");
-        setElevenLabsKey("");
-        toast.success("ElevenLabs API key removed");
       }
     } catch (error) {
       console.error("Reset API key error:", error);
@@ -65,6 +94,7 @@ export default function ApiKeySettings() {
     } finally {
       setResetConfirmOpen(false);
       setKeyTypeToReset(null);
+      setLoading(false);
     }
   };
 
@@ -129,7 +159,7 @@ export default function ApiKeySettings() {
           <div className="text-sm text-muted-foreground">
             <p>
               You can obtain a Gemini API key from the{" "}
-              <a
+              
                 href="https://ai.google.dev/"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -151,88 +181,12 @@ export default function ApiKeySettings() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>ElevenLabs API Key</CardTitle>
-          <CardDescription>
-            Coming soon: Integrate ElevenLabs for audio reports
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="elevenlabs-api-key">API Key</Label>
-            <div className="flex space-x-2">
-              <div className="relative flex-1">
-                <Input
-                  id="elevenlabs-api-key"
-                  type={showElevenLabsKey ? "text" : "password"}
-                  value={elevenLabsKey}
-                  onChange={(e) => setElevenLabsKey(e.target.value)}
-                  placeholder="Enter your ElevenLabs API key"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={() => setShowElevenLabsKey(!showElevenLabsKey)}
-                >
-                  {showElevenLabsKey ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              {elevenLabsKey && (
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => copyToClipboard(elevenLabsKey, "ElevenLabs API key")}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                onClick={handleSaveElevenLabsKey}
-                disabled={loading}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                <span>Save</span>
-              </Button>
-            </div>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            <p>
-              You can obtain an ElevenLabs API key from the{" "}
-              <a
-                href="https://elevenlabs.io/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                ElevenLabs website
-              </a>
-            </p>
-          </div>
-          {elevenLabsKey && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => resetKey("elevenlabs")}
-            >
-              Reset API Key
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
       <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove your saved API key. You'll need to re-enter it later.
+              This will remove your saved API key. You&apos;ll need to re-enter it later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

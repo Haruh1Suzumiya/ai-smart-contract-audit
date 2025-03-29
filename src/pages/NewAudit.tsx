@@ -1,21 +1,23 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAudit } from "@/contexts/AuditContext";
 import MainLayout from "@/components/layouts/MainLayout";
 import AuditForm from "@/components/audit/AuditForm";
+import AuditLoading from "@/components/audit/AuditLoading"; 
 
 export default function NewAudit() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { loading: auditLoading } = useAudit();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate("/login");
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
-  if (loading) {
+  if (authLoading) {
     return (
       <MainLayout>
         <div className="flex justify-center items-center h-80">
@@ -27,7 +29,7 @@ export default function NewAudit() {
 
   return (
     <MainLayout>
-      <AuditForm />
+      {auditLoading ? <AuditLoading /> : <AuditForm />}
     </MainLayout>
   );
 }

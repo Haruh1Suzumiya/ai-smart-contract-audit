@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,17 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ForgotPasswordForm() {
   const { resetPassword, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
     
     if (!email) {
-      toast.error("Please enter your email");
+      setErrorMessage("Please enter your email");
       return;
     }
     
@@ -25,6 +28,7 @@ export default function ForgotPasswordForm() {
       setIsSubmitted(true);
     } catch (error) {
       console.error("Reset password error:", error);
+      // Error message is handled by the Auth context
     }
   };
 
@@ -40,6 +44,13 @@ export default function ForgotPasswordForm() {
       </div>
       {!isSubmitted ? (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -57,12 +68,12 @@ export default function ForgotPasswordForm() {
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-lg bg-muted p-4 text-center">
-            <p>
+          <Alert>
+            <AlertDescription>
               If an account exists with this email, you will receive a password reset
               link shortly.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
           <Button asChild className="w-full">
             <Link to="/login">Return to Login</Link>
           </Button>

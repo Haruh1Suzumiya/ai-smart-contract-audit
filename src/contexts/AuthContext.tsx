@@ -1,7 +1,8 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "@/types";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { Session, AuthError } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -22,9 +23,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check for existing session
     const checkSession = async () => {
       try {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
+        setLoading(true);
+        
+        // Get session from Supabase
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (session) {
+          await handleSession(session);
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -33,31 +42,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          await handleSession(session);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
     checkSession();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // For demo purposes, we're using localStorage
-  // In a real app, this would connect to Supabase Auth
+  // Helper function to get user data from session
+  const handleSession = async (session: Session) => {
+    const currentUser = session.user;
+    
+    // Format user data to match our User type
+    const userData: User = {
+      id: currentUser.id,
+      email: currentUser.email || "",
+      full_name: currentUser.user_metadata.full_name || "",
+      created_at: currentUser.created_at,
+    };
+    
+    setUser(userData);
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo, create a fake user (in real app this would be from Supabase)
-      const demoUser: User = {
-        id: "user-" + Math.random().toString(36).substring(2, 9),
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        full_name: email.split('@')[0],
-        created_at: new Date().toISOString(),
-      };
+        password,
+      });
       
-      setUser(demoUser);
-      localStorage.setItem("user", JSON.stringify(demoUser));
+      if (error) {
+        throw error;
+      }
+      
       toast.success("Successfully signed in!");
     } catch (error) {
       console.error("Error signing in:", error);
-      toast.error("Failed to sign in. Please try again.");
+      if (error instanceof AuthError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to sign in. Please try again.");
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -67,23 +106,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo, create a fake user
-      const demoUser: User = {
-        id: "user-" + Math.random().toString(36).substring(2, 9),
+      const { data, error } = await supabase.auth.signUp({
         email,
-        full_name: fullName,
-        created_at: new Date().toISOString(),
-      };
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
       
-      setUser(demoUser);
-      localStorage.setItem("user", JSON.stringify(demoUser));
-      toast.success("Account created successfully!");
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Account created successfully! Please check your email to verify your account.");
     } catch (error) {
       console.error("Error signing up:", error);
-      toast.error("Failed to create account. Please try again.");
+      if (error instanceof AuthError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create account. Please try again.");
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -93,15 +138,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
       
       setUser(null);
-      localStorage.removeItem("user");
       toast.success("Signed out successfully");
     } catch (error) {
       console.error("Error signing out:", error);
-      toast.error("Failed to sign out. Please try again.");
+      if (error instanceof AuthError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to sign out. Please try again.");
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -111,13 +163,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
       
       toast.success("Password reset email sent! Check your inbox.");
     } catch (error) {
       console.error("Error resetting password:", error);
-      toast.error("Failed to send reset email. Please try again.");
+      if (error instanceof AuthError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to send reset email. Please try again.");
+      }
       throw error;
     } finally {
       setLoading(false);

@@ -1,7 +1,7 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAudit } from "@/contexts/AuditContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { AuditResult } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +21,10 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getScoreColor, getScoreLabel } from "@/lib/constants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FileText, MoreVertical, Trash, Eye } from "lucide-react";
+import { FileText, MoreVertical, Trash, Eye, Loader2 } from "lucide-react";
 
 export default function AuditHistoryList() {
+  const { user } = useAuth();
   const { audits, deleteAudit, loading } = useAudit();
   const navigate = useNavigate();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -55,7 +56,7 @@ export default function AuditHistoryList() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ export default function CallToAction() {
 
   return (
     <div className="py-16">
-      <div className="container px-4 mx-auto">
+      <div className="container px-4 mx-auto max-w-full">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center justify-center rounded-full gradient-bg p-3 mb-6">
             <Shield className="h-8 w-8 text-white" />

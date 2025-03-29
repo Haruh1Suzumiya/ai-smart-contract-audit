@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ export default function HeroSection() {
   const navigate = useNavigate();
 
   return (
-    <div className="px-4 py-20 md:py-32 mx-auto max-w-7xl">
+    <div className="px-4 py-20 md:py-32 mx-auto container max-w-full">
       <div className="flex flex-col md:flex-row items-center justify-between gap-12">
         <div className="flex-1 space-y-8">
           <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary">

@@ -1,4 +1,3 @@
-
 import { ShieldCheck, Zap, FileText, Github, Code, AlertTriangle } from "lucide-react";
 
 interface FeatureProps {
@@ -55,10 +54,10 @@ export default function FeaturesSection() {
 
   return (
     <div className="py-16 bg-muted">
-      <div className="container px-4 mx-auto">
+      <div className="container px-4 mx-auto max-w-full">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4">Comprehensive Audit Features</h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Our AI-powered platform offers a complete suite of smart contract analysis tools to ensure your code is secure and optimized.
           </p>
         </div>

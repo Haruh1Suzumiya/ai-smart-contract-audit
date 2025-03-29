@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,18 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginForm() {
   const { signIn, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
     
     if (!email || !password) {
-      toast.error("Please enter both email and password");
+      setErrorMessage("Please enter both email and password");
       return;
     }
     
@@ -26,6 +29,7 @@ export default function LoginForm() {
       navigate("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+      // Error message is handled by the Auth context
     }
   };
 
@@ -36,6 +40,13 @@ export default function LoginForm() {
         <p className="text-gray-500 dark:text-gray-400">Enter your credentials to access your account</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {errorMessage && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input

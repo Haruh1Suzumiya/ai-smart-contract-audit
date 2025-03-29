@@ -1,4 +1,3 @@
-
 import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import MainNav from "@/components/navigation/MainNav";
@@ -20,7 +19,7 @@ export default function MainLayout({ children, showSidebar = true }: MainLayoutP
           <Sidebar />
         )}
         <main className={`flex-1 ${showSidebar && user ? 'pl-0 md:pl-64' : ''} transition-all duration-300`}>
-          <div className="container py-6 md:py-10 px-4 md:px-6">
+          <div className="container max-w-full py-6 md:py-10 px-4 md:px-6">
             {children}
           </div>
         </main>
