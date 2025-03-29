@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAudit } from "@/contexts/AuditContext";
 import { Button } from "@/components/ui/button";
@@ -28,10 +27,15 @@ export default function DashboardOverview() {
     ? Math.round(audits.reduce((sum, audit) => sum + audit.score, 0) / totalAudits)
     : 0;
   
+  // この部分でエラーが発生しているので修正
   const criticalVulnerabilities = audits.reduce((count, audit) => {
-    const criticalIssues = audit.categories.flatMap(cat => 
-      cat.issues.filter(issue => issue.severity === "high")
-    );
+    if (!audit.categories) return count;
+    
+    const criticalIssues = audit.categories.flatMap(cat => {
+      if (!cat.issues) return [];
+      return cat.issues.filter(issue => issue.severity === "high");
+    });
+    
     return count + criticalIssues.length;
   }, 0);
 

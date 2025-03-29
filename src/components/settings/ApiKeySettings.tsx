@@ -159,7 +159,7 @@ export default function ApiKeySettings() {
           <div className="text-sm text-muted-foreground">
             <p>
               You can obtain a Gemini API key from the{" "}
-              
+              <a
                 href="https://ai.google.dev/"
                 target="_blank"
                 rel="noopener noreferrer"

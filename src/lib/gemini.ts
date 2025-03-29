@@ -81,7 +81,6 @@ export async function performAudit(userId: string, solidityCode: string) {
   }
 
   const genAI = new GoogleGenAI({ apiKey });
-  const model = genAI.models;
 
   // プロンプトの作成
   const prompt = `
@@ -104,10 +103,10 @@ export async function performAudit(userId: string, solidityCode: string) {
   `;
 
   try {
-    const result = await model.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: [{ text: prompt }],
-      generationConfig: {
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-pro-exp-03-25",
+      contents: prompt,
+      config: {
         responseMimeType: 'application/json',
         responseSchema: auditSchema,
       },
@@ -116,9 +115,9 @@ export async function performAudit(userId: string, solidityCode: string) {
     // 結果をJSONとしてパース
     let auditResult;
     try {
-      const resultText = result.response?.text() || '';
-      if (resultText) {
-        auditResult = JSON.parse(resultText);
+      const textResult = response.text;
+      if (textResult) {
+        auditResult = JSON.parse(textResult);
       } else {
         throw new Error('Empty response from Gemini');
       }
