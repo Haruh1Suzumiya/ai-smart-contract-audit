@@ -8,12 +8,12 @@ interface FeatureProps {
 
 function Feature({ icon, title, description }: FeatureProps) {
   return (
-    <div className="p-6 border border-border rounded-lg bg-card shadow-sm hover:shadow-md transition-shadow">
-      <div className="h-12 w-12 rounded-lg gradient-bg flex items-center justify-center mb-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+      <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center mb-4">
         {icon}
       </div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+      <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">{title}</h3>
+      <p className="text-gray-600 dark:text-gray-300">{description}</p>
     </div>
   );
 }
@@ -53,11 +53,11 @@ export default function FeaturesSection() {
   ];
 
   return (
-    <div className="py-16 bg-muted">
-      <div className="container px-4 mx-auto max-w-full">
+    <div className="py-20 bg-gray-50 dark:bg-gray-900">
+      <div className="container px-4 mx-auto max-w-7xl">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Comprehensive Audit Features</h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Comprehensive Audit Features</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Our AI-powered platform offers a complete suite of smart contract analysis tools to ensure your code is secure and optimized.
           </p>
         </div>

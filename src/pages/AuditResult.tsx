@@ -1,66 +1,95 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { useAudit } from "@/contexts/AuditContext";
+import { useAuth } from "@/contexts/AuthContext";
 import MainLayout from "@/components/layouts/MainLayout";
 import AuditResults from "@/components/audit/AuditResults";
 import AuditLoading from "@/components/audit/AuditLoading";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 export default function AuditResult() {
-  const { user, loading: authLoading } = useAuth();
-  const { getAudit, currentAudit, setCurrentAudit, loading: auditLoading } = useAudit();
   const { id } = useParams<{ id: string }>();
+  const { getAudit } = useAudit();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  
+  const [audit, setAudit] = useState(null);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState<string | null>(null);
+  
   useEffect(() => {
-    if (!authLoading && !user) {
+    // If user is not logged in and not currently loading auth state, redirect to login
+    if (!user && !authLoading) {
       navigate("/login");
       return;
     }
-
-    const loadAudit = async () => {
+    
+    const fetchAudit = async () => {
       if (!id || !user) return;
       
       try {
         setLoading(true);
+        const result = await getAudit(id);
         
-        // 現在のauditが同じIDならロードしない
-        if (currentAudit && currentAudit.id === id) {
-          setLoading(false);
+        if (!result) {
+          setError("Audit not found");
           return;
         }
         
-        const audit = await getAudit(id);
-        if (audit) {
-          setCurrentAudit(audit);
-        } else {
-          navigate("/dashboard");
-        }
+        setAudit(result);
       } catch (error) {
-        console.error("Error loading audit:", error);
-        navigate("/dashboard");
+        console.error("Error fetching audit:", error);
+        setError("Failed to load audit data");
       } finally {
         setLoading(false);
       }
     };
+    
+    if (user) {
+      fetchAudit();
+    }
+  }, [id, user, authLoading, getAudit, navigate]);
 
-    loadAudit();
-  }, [id, user, authLoading, currentAudit, navigate, getAudit, setCurrentAudit]);
-
-  if (authLoading || loading || !currentAudit) {
+  if (authLoading || loading) {
     return (
       <MainLayout>
-        <div className="flex justify-center items-center h-80">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <div className="container max-w-7xl mx-auto px-4 py-8">
+          <AuditLoading />
         </div>
       </MainLayout>
     );
   }
 
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="container max-w-3xl mx-auto px-4 py-16">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <div className="flex justify-center">
+            <Button onClick={() => navigate("/dashboard")}>
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!audit) {
+    return null;
+  }
+
   return (
     <MainLayout>
-      {auditLoading ? <AuditLoading /> : <AuditResults audit={currentAudit} />}
+      <div className="container max-w-7xl mx-auto px-4 py-8">
+        <AuditResults audit={audit} />
+      </div>
     </MainLayout>
   );
 }

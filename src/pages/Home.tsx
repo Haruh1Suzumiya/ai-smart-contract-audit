@@ -1,4 +1,3 @@
-
 import MainLayout from "@/components/layouts/MainLayout";
 import HeroSection from "@/components/home/HeroSection";
 import FeaturesSection from "@/components/home/FeaturesSection";
@@ -8,10 +7,12 @@ import Footer from "@/components/home/Footer";
 export default function Home() {
   return (
     <MainLayout showSidebar={false}>
-      <HeroSection />
-      <FeaturesSection />
-      <CallToAction />
-      <Footer />
+      <div className="min-h-screen bg-white dark:bg-gray-900">
+        <HeroSection />
+        <FeaturesSection />
+        <CallToAction />
+        <Footer />
+      </div>
     </MainLayout>
   );
 }
