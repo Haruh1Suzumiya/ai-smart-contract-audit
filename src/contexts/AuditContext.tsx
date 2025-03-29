@@ -1,17 +1,19 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { AuditResult } from "@/types";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
+import { saveAuditResult, getAuditResults, getAuditResultById } from "@/lib/supabase";
+import { performAudit, fetchCodeFromGithub } from "@/lib/gemini";
 
 interface AuditContextType {
   audits: AuditResult[];
   currentAudit: AuditResult | null;
   loading: boolean;
-  performAudit: (name: string, code: string) => Promise<AuditResult>;
-  getAudit: (id: string) => AuditResult | null;
+  performAudit: (name: string, code: string, sourceType: 'manual' | 'file' | 'github') => Promise<AuditResult>;
+  getAudit: (id: string) => Promise<AuditResult | null>;
   deleteAudit: (id: string) => Promise<void>;
   setCurrentAudit: (audit: AuditResult | null) => void;
+  fetchCodeFromGitHub: (url: string) => Promise<string>;
 }
 
 const AuditContext = createContext<AuditContextType | undefined>(undefined);
@@ -22,204 +24,120 @@ export function AuditProvider({ children }: { children: ReactNode }) {
   const [currentAudit, setCurrentAudit] = useState<AuditResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load existing audits from localStorage when user changes
+  // 監査履歴を読み込む
   useEffect(() => {
-    if (user) {
-      const storedAudits = localStorage.getItem(`audits-${user.id}`);
-      if (storedAudits) {
-        setAudits(JSON.parse(storedAudits));
-      } else {
+    const loadAudits = async () => {
+      if (!user) {
         setAudits([]);
+        return;
       }
-    } else {
-      setAudits([]);
-      setCurrentAudit(null);
-    }
+
+      try {
+        setLoading(true);
+        const auditResults = await getAuditResults(user.id);
+        setAudits(auditResults);
+      } catch (error) {
+        console.error("Error loading audit results:", error);
+        toast.error("Failed to load audit history");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAudits();
   }, [user]);
 
-  // For demo purposes - in a real app this would use Gemini API
-  const generateFakeAuditResult = (name: string, code: string): AuditResult => {
-    const getRandomScore = (maxScore: number) => Math.floor(Math.random() * (maxScore * 0.4)) + Math.floor(maxScore * 0.6);
-    
-    const categories = [
-      {
-        name: "Security",
-        score: getRandomScore(25),
-        max_score: 25,
-        description: "Assessment of security vulnerabilities and risks",
-        issues: [
-          {
-            title: "Unchecked External Call",
-            description: "The contract makes external calls without checking the return value.",
-            severity: "medium" as const,
-            code_reference: "line 45-50",
-            recommendation: "Always check the return value of external calls and handle potential failures."
-          },
-          {
-            title: "Input Validation",
-            description: "Proper input validation is implemented for critical functions.",
-            severity: "safe" as const,
-            recommendation: "Continue maintaining proper input validation."
-          }
-        ]
-      },
-      {
-        name: "Business Logic",
-        score: getRandomScore(20),
-        max_score: 20,
-        description: "Evaluation of the contract's business logic implementation",
-        issues: [
-          {
-            title: "Logic Implementation",
-            description: "The core business logic is properly implemented with appropriate checks.",
-            severity: "safe" as const,
-            recommendation: "Continue with current implementation approach."
-          }
-        ]
-      },
-      {
-        name: "Gas Optimization",
-        score: getRandomScore(15),
-        max_score: 15,
-        description: "Analysis of gas usage and optimization opportunities",
-        issues: [
-          {
-            title: "Redundant Storage",
-            description: "Contract uses redundant storage operations that could be optimized.",
-            severity: "low" as const,
-            code_reference: "line 32",
-            recommendation: "Consider caching values in memory instead of making multiple storage reads."
-          }
-        ]
-      },
-      {
-        name: "Reentrancy Protection",
-        score: getRandomScore(15),
-        max_score: 15,
-        description: "Assessment of reentrancy protection mechanisms",
-        issues: [
-          {
-            title: "Missing Reentrancy Guard",
-            description: "Some functions that interact with external contracts lack reentrancy protection.",
-            severity: "high" as const,
-            code_reference: "function withdraw()",
-            recommendation: "Implement the ReentrancyGuard pattern from OpenZeppelin or use a mutex."
-          }
-        ]
-      },
-      {
-        name: "Standards Compliance",
-        score: getRandomScore(15),
-        max_score: 15,
-        description: "Adherence to Ethereum standards and best practices",
-        issues: [
-          {
-            title: "ERC Standard Implementation",
-            description: "The contract properly implements the relevant ERC standards.",
-            severity: "safe" as const,
-            recommendation: "Continue adhering to ERC standards for future development."
-          }
-        ]
-      },
-      {
-        name: "Code Quality",
-        score: getRandomScore(10),
-        max_score: 10,
-        description: "Review of code quality, readability, and documentation",
-        issues: [
-          {
-            title: "Documentation",
-            description: "The contract has adequate documentation for most functions.",
-            severity: "info" as const,
-            recommendation: "Consider adding more detailed documentation for complex functions."
-          },
-          {
-            title: "Code Consistency",
-            description: "Code style is consistent throughout the contract.",
-            severity: "safe" as const,
-            recommendation: "Continue maintaining consistent code style."
-          }
-        ]
-      }
-    ];
-    
-    // Calculate total score
-    const totalScore = categories.reduce((sum, category) => sum + category.score, 0);
-    const maxPossibleScore = categories.reduce((sum, category) => sum + category.max_score, 0);
-    const normalizedScore = Math.round((totalScore / maxPossibleScore) * 100);
-    
-    return {
-      id: "audit-" + Math.random().toString(36).substring(2, 9),
-      user_id: user?.id || "anonymous",
-      name,
-      code,
-      score: normalizedScore,
-      created_at: new Date().toISOString(),
-      categories,
-      summary: "This smart contract has been analyzed for security vulnerabilities, gas optimization, and code quality. The overall score reflects the contract's security posture and adherence to best practices. Review the detailed findings for specific recommendations."
-    };
+  // GitHubからコードを取得
+  const fetchCodeFromGitHub = async (url: string) => {
+    try {
+      return await fetchCodeFromGithub(url);
+    } catch (error) {
+      console.error("Error fetching code from GitHub:", error);
+      toast.error("Failed to fetch code from GitHub");
+      throw error;
+    }
   };
 
-  const performAudit = async (name: string, code: string) => {
+  // 監査実行関数
+  const executeAudit = async (name: string, code: string, sourceType: 'manual' | 'file' | 'github') => {
+    if (!user) {
+      throw new Error("You must be logged in to perform an audit");
+    }
+
     try {
       setLoading(true);
       
-      // In a real app, this would call the Gemini API
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Gemini APIで監査を実行
+      const auditResult = await performAudit(user.id, code);
       
-      const auditResult = generateFakeAuditResult(name, code);
+      // 監査結果をDBに保存
+      const savedResult = await saveAuditResult(
+        user.id,
+        name,
+        code,
+        sourceType,
+        auditResult.score,
+        auditResult,
+        auditResult.summary
+      );
       
-      // Add to state and save to localStorage
-      const updatedAudits = [...audits, auditResult];
-      setAudits(updatedAudits);
-      setCurrentAudit(auditResult);
+      // AuditResultオブジェクトに変換
+      const processedResult: AuditResult = {
+        id: savedResult.id,
+        user_id: savedResult.user_id,
+        name: savedResult.name,
+        code: savedResult.code,
+        score: savedResult.score,
+        categories: auditResult.categories,
+        summary: savedResult.summary,
+        created_at: savedResult.created_at
+      };
       
-      if (user) {
-        localStorage.setItem(`audits-${user.id}`, JSON.stringify(updatedAudits));
-      }
+      // 最新の監査結果をリストに追加
+      setAudits(prev => [processedResult, ...prev]);
+      setCurrentAudit(processedResult);
       
       toast.success("Audit completed successfully!");
-      return auditResult;
+      return processedResult;
     } catch (error) {
       console.error("Error performing audit:", error);
-      toast.error("Failed to complete audit. Please try again.");
+      toast.error("Failed to complete audit");
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const getAudit = (id: string) => {
-    return audits.find(audit => audit.id === id) || null;
-  };
-
-  const deleteAudit = async (id: string) => {
+  // 監査結果を取得
+  const getAudit = async (id: string) => {
+    if (!user) return null;
+    
     try {
-      setLoading(true);
+      const result = await getAuditResultById(user.id, id);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // AuditResultオブジェクトに変換
+      const processedResult: AuditResult = {
+        id: result.id,
+        user_id: result.user_id,
+        name: result.name,
+        code: result.code,
+        score: result.score,
+        categories: result.result.categories,
+        summary: result.summary,
+        created_at: result.created_at
+      };
       
-      const updatedAudits = audits.filter(audit => audit.id !== id);
-      setAudits(updatedAudits);
-      
-      if (currentAudit?.id === id) {
-        setCurrentAudit(null);
-      }
-      
-      if (user) {
-        localStorage.setItem(`audits-${user.id}`, JSON.stringify(updatedAudits));
-      }
-      
-      toast.success("Audit deleted successfully");
+      return processedResult;
     } catch (error) {
-      console.error("Error deleting audit:", error);
-      toast.error("Failed to delete audit. Please try again.");
-      throw error;
-    } finally {
-      setLoading(false);
+      console.error("Error getting audit:", error);
+      return null;
     }
+  };
+
+  // 監査結果を削除（現在は未実装）
+  const deleteAudit = async (id: string) => {
+    // 将来的に実装
+    toast.error("Delete functionality is not implemented yet");
   };
 
   return (
@@ -228,10 +146,11 @@ export function AuditProvider({ children }: { children: ReactNode }) {
         audits,
         currentAudit,
         loading,
-        performAudit,
+        performAudit: executeAudit,
         getAudit,
         deleteAudit,
         setCurrentAudit,
+        fetchCodeFromGitHub
       }}
     >
       {children}

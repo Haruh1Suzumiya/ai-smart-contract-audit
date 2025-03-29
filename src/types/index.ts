@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -37,6 +36,8 @@ export interface AuditIssue {
 export interface ApiKey {
   id: string;
   user_id: string;
-  name: string;
-  key: string;
+  api_name: string;
+  api_key: string;
+  created_at: string;
+  updated_at: string;
 }
